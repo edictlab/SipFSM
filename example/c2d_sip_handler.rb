@@ -100,11 +100,5 @@ class C2dSipHandler < SipFSM
     @app_session.set_expires(0) if leg2
   end
 
-  # checks if the request is INVITE  
-  def is_INVITE? msgs
-    req, res = msgs
-    req.get_method == "INVITE"
-  end
-
 end # of class SipHandler
 
