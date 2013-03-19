@@ -15,6 +15,7 @@ You can read about SipFSM and SimpleFSM in our papers. PDF files are available a
 SipFSM is based on SimpleFSM DSL (simplefsm Ruby gem). Besides that, it works best with jrubycipango JRuby gem. See further instructions on jrubycipango Github page.
 
 ### The idea
+
 To better organize the code for the SIP application logic,
 the SimpleFSM DSL can be utilized inside a SIP servlet
 class implemented in Ruby.
@@ -54,6 +55,75 @@ The application's FSM, while in some state, can react, for example,  to `sipRESP
 
 The FSM facility considers the current application state and generates an event that is the most specific to the message it receives.  If, for example, the FSM receives a response message `180 Ringing` while in `:state1`, then the most specific event to generate is the `sipRESPONSE_1xx` event. Similarly, when the application is in `:state2`, the `180` response message would result in generation of the `sipRESPONSE_180` event, the `182 Queued` message would result in generation of the `sipRESPONSE_1xx` event, while any other received SIP response message would result in generation of the `sipRESPONSE_ANY` event. 
 
+## Example
+
+The accompanying example implements click to call SIP servlet. The example is more detailed explained in the aforementioned papers (the Part II paper).
+
+State diagram of the Click to dial Ruby SIP servlet is given in the following figure.
+
+![C2dSipHandler state diagram](http://edin.ictlab.com.ba/images/c2d_statediagram.png)
+
+
+Definition of the Click to dial Ruby SIP servlet is as follows:
+
+```ruby
+require 'sipfsm'
+
+class C2dSipHandler < SipFSM
+
+  fsm do
+    state :idle
+    state :call_leg1
+    state :call_leg2,   { :enter => :invite_leg2 }
+    state :connected
+    state :terminating, { :enter => :b2bua_BYE_other }
+
+    transitions_for :idle do
+      event :sendREQ, :new => :call_leg1, 
+            :guard => :is_INVITE?, :do => :b2b_send_initial_req 
+    end
+
+    transitions_for :call_leg1 do
+      event :sipRESPONSE_4xx, :new => :idle, :do => :invalidate_session
+      event :sipRESPONSE_6xx, :new => :idle, :do => :invalidate_session
+      event :sipRESPONSE_200, :new => :call_leg2
+      event :hangUP, :new => :idle, :do => :cancel_req
+    end
+      
+    transitions_for :call_leg2 do
+      event :sipBYE, :new => :terminating, :do => :send_response_200
+      event :sipRESPONSE_4xx, :new => :terminating
+      event :sipRESPONSE_6xx, :new => :terminating, :do => :invalidate_session 
+      event :sipRESPONSE_200, :new => :connected, :do => :send_ACKs
+      event :hangUP, :new => :idle, :do => :bye_cancel
+    end
+      
+    transitions_for :connected do
+      event :sipRESPONSE_4xx, :new => :terminating, :do => :invalidate_session 
+      event :sipBYE, :new => :terminating, :do => :send_response_200
+      event :hangUP, :new => :idle, :do => :b2bua_BYE_both
+    end
+
+    transitions_for :terminating do
+      event :sipRESPONSE_200, :new => :idle
+      event :sipRESPONSE_4xx, :new => :idle, :do => :invalidate_session 
+    end
+  end
+
+  private
+  # Several private methods omited. See it in the example source code file.
+
+end
+```
+Methods (events generated) `sendREQ` and `hangUP` are called from the web part of the application. The argument of the first one is a request that is to be sent to the first leg. The request can be created with:
+
+```ruby
+C2dSipHandler.create_request(app_session, 'INVITE', sipto, sipfrom)
+```
+
+The second is called with the same initial `INVITE` request as with `sendREQ` method in order to terminate the call as shown in the diagram.
+
+In SIP signaling, many actions can be implemented genericaly. `SipFSM` class implements several such actions that can be used directly in FSM definition without any further code. Such methods are `b2bua_BYE_other`, `send_initial_req`, `invalidate_session`, `b2bua_BYE_both` etc.
 
 More help end examples are to come.
 
