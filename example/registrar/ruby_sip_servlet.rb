@@ -1,7 +1,7 @@
 require 'sipfsm'
 
 # File 'ruby_sip_servlet.rb'
-class MySipServlet < SipFSM::SipFSM
+class MySipServlet < SipFSMModule::SipFSM
 
   fsm do
     state :idle

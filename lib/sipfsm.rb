@@ -4,7 +4,7 @@ require 'simplefsm'
 # SipFSM 
 # SIP application development using SimpleFSM DSL
 
-module SipFSM
+module SipFSMModule
   class SipFSM <  Java::javax.servlet.sip.SipServlet
     include javax.servlet.sip.TimerListener
     include javax.servlet.sip.SipSessionListener

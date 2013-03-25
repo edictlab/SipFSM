@@ -1,5 +1,5 @@
-# File 'ruby_sip_servlet-old.rb'
-class MySipServlet < Java::javax.servlet.sip.SipServlet
+# File 'ruby_sip_servlet-old2.rb'
+class MySipServletOld < Java::javax.servlet.sip.SipServlet
 
   def doRegister(request)
     username = request.from.uri.user
@@ -7,7 +7,7 @@ class MySipServlet < Java::javax.servlet.sip.SipServlet
     port = request.remote_port
     remote_uri = "sip:#{username}@#{address}:#{port}"
 
-    puts "REGISTRATION: #{remote_uri}"
+    puts "OLD REGISTRATION: #{remote_uri}"
 
     user = SipUser.find_by_user_name(username)
     if user 
