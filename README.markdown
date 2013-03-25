@@ -133,7 +133,7 @@ C2dSipHandler.create_request(app_session, 'INVITE', sipto, sipfrom)
 
 The second is called with the same initial `INVITE` request as with `sendREQ` method in order to terminate the call as shown in the diagram.
 
-In SIP signaling, many actions can be implemented genericaly. `SipFSM` class implements several such actions that can be used directly in FSM definition without any further code. Such methods are `b2bua_BYE_other`, `send_initial_req`, `invalidate_session`, `b2bua_BYE_both`, `send_response_XXX` family of methods, `is_INVITE?`, `is_BYE?` and similar, etc.
+In SIP signaling, many actions can be implemented genericaly. `SipFSM` class implements several such actions that can be used directly in FSM definition without any further code. Such methods are `b2bua_BYE_other`, `send_initial_req`, `invalidate_session`, `b2bua_BYE_both`, `send_response_XXX` family of methods, `is_INVITE_request?`, `is_BYE_request?` and similar, etc.
 
 More help end examples are to come.
 
