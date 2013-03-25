@@ -38,30 +38,40 @@ The application's FSM, while in some state, can react, for example,  to `sipRESP
 
       transitions_for :state1 do
         event :sipRESPONSE_1xx, :new => :state1, 
-            :do => :action1
+            :action => :action1
         event :sipRESPONSE_ANY, :new => :state12
       end
 
       transitions_for :state2 do
         event :sipRESPONSE_1xx, :new => state2, 
-            :do => :action2
+            :action => :action2
         event :sipRESPONSE_180, :new => state2, 
-            :do => :action3
+            :action => :action3
         event :sipRESPONSE_183, :new => state2, 
-            :do => :action4
+            :action => :action4
         event :sipRESPONSE_ANY, :new => :state22, 
-            :do => :action5
+            :action => :action5
       end
 
 The FSM facility considers the current application state and generates an event that is the most specific to the message it receives.  If, for example, the FSM receives a response message `180 Ringing` while in `:state1`, then the most specific event to generate is the `sipRESPONSE_1xx` event. Similarly, when the application is in `:state2`, the `180` response message would result in generation of the `sipRESPONSE_180` event, the `182 Queued` message would result in generation of the `sipRESPONSE_1xx` event, while any other received SIP response message would result in generation of the `sipRESPONSE_ANY` event. 
 
-## Example
+## Examples
+#### Example 1 - Registrar and proxy
 
-The accompanying example implements click to call SIP servlet. The example is more detailed explained in the aforementioned papers (the Part II paper).
+Example from `JRubyCipango` gem is updated to use `SipFSM`. The updated project is in `example/registrar` directory.
+The new Ruby SIP servlet, that is implemented using SipFSM, is in file `ruby_sip_servlet.rb` and the version that is implemented traditionaly, using plain SIP Servlets API, is in `ruby_sip_servlet-old.rb`.
+The rest of the project (Rails part) remains the same.
 
-State diagram of the Click to dial Ruby SIP servlet is given in the following figure.
+In this example, a complex `if` program structure from two methods, `doRegister` and `doInvite`, is described as an FSM, which is easier to track and understand. The actions and guard methods are then very simple and sraightforward to implement. Version 0.2 and above of `SimpleFSM` is required for this example because it uses its several new features.
+
+#### Example 2 - Click to call
+
+The second accompanying example implements a click to call SIP servlet. State diagram of the Click to dial Ruby SIP servlet is given in the following figure.
 
 ![C2dSipHandler state diagram](http://edin.ictlab.com.ba/images/c2d_statediagram.png)
+
+This example has a complex call flow that would be extremely complicated if implemented using plain SIP Servlets API. Implementation of the servlet using `SipFSM` clearly describes the call flow and is easier to debug. The example is more detailed explained in the aforementioned papers (the Part II paper).
+
 
 
 Definition of the Click to dial Ruby SIP servlet is as follows:
@@ -80,33 +90,33 @@ class C2dSipHandler < SipFSM
 
     transitions_for :idle do
       event :sendREQ, :new => :call_leg1, 
-            :guard => :is_INVITE?, :do => :b2b_send_initial_req 
+            :guard => :is_INVITE?, :action => :b2b_send_initial_req 
     end
 
     transitions_for :call_leg1 do
-      event :sipRESPONSE_4xx, :new => :idle, :do => :invalidate_session
-      event :sipRESPONSE_6xx, :new => :idle, :do => :invalidate_session
+      event :sipRESPONSE_4xx, :new => :idle, :action => :invalidate_session
+      event :sipRESPONSE_6xx, :new => :idle, :action => :invalidate_session
       event :sipRESPONSE_200, :new => :call_leg2
-      event :hangUP, :new => :idle, :do => :cancel_req
+      event :hangUP, :new => :idle, :action => :cancel_req
     end
       
     transitions_for :call_leg2 do
-      event :sipBYE, :new => :terminating, :do => :send_response_200
+      event :sipBYE, :new => :terminating, :action => :send_response_200
       event :sipRESPONSE_4xx, :new => :terminating
-      event :sipRESPONSE_6xx, :new => :terminating, :do => :invalidate_session 
-      event :sipRESPONSE_200, :new => :connected, :do => :send_ACKs
-      event :hangUP, :new => :idle, :do => :bye_cancel
+      event :sipRESPONSE_6xx, :new => :terminating, :action => :invalidate_session 
+      event :sipRESPONSE_200, :new => :connected, :action => :send_ACKs
+      event :hangUP, :new => :idle, :action => :bye_cancel
     end
       
     transitions_for :connected do
-      event :sipRESPONSE_4xx, :new => :terminating, :do => :invalidate_session 
-      event :sipBYE, :new => :terminating, :do => :send_response_200
-      event :hangUP, :new => :idle, :do => :b2bua_BYE_both
+      event :sipRESPONSE_4xx, :new => :terminating, :action => :invalidate_session 
+      event :sipBYE, :new => :terminating, :action => :send_response_200
+      event :hangUP, :new => :idle, :action => :b2bua_BYE_both
     end
 
     transitions_for :terminating do
       event :sipRESPONSE_200, :new => :idle
-      event :sipRESPONSE_4xx, :new => :idle, :do => :invalidate_session 
+      event :sipRESPONSE_4xx, :new => :idle, :action => :invalidate_session 
     end
   end
 

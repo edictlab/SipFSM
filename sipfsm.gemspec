@@ -2,8 +2,8 @@
   
 Gem::Specification.new do |s|
   s.name        = 'sipfsm'
-  s.version     = '0.1.2'
-  s.date        = '2013-02-15'
+  s.version     = '0.1.4'
+  s.date        = '2013-03-25'
   s.summary     = "SipFSM - SIP application development in Ruby"
   s.description = "SIP application development in Ruby using SimpleFSM, a simple and lightweight domain specific language (DSL)."
   s.authors     = ["Edin Pjanic", "Amer Hasanovic"]
