@@ -146,7 +146,13 @@ module SipFSM
         args[0].create_response($1.to_i).send
       elsif name.to_s =~ /is_(.*)_request?/
         args[0].get_method == $1
+      else
+        super
       end
+    end
+
+    def sip_factory
+      $servlet_context.get_attribute('javax.servlet.sip.SipFactory')
     end
 
     # proxy request to given URI
@@ -169,6 +175,16 @@ module SipFSM
       end
     end
 
+    def get_from_user_address_port(msg)
+      [ msg.from.uri.user,
+        msg.remote_addr,
+        msg.remote_port ]
+    end
+
+    def get_from_uri(msg)
+      u, a, p = get_from_user_address_port(msg)
+      "sip:#{u}@#{a}:#{p}" 
+    end
 
     # copies content (SDP) from message m1 to message m2
     def copy_msg_content(m1, m2)
@@ -202,6 +218,20 @@ module SipFSM
     # All methods have atributes according to the SipFSM standard
     # meaning the first in the argument array is request and 
     # the second is response. 
+
+    def is_UNREGISTER?(args)
+      request = args[0]
+      return false unless is_REGISTER_request?(args)
+
+      exp = request.get_header('Expires')
+      if !exp
+        c = request.get_header('Contact')
+        c.grep(/expires=(\d+)/)
+        exp = $1
+      end
+
+      0 == exp.to_i
+    end
 
     def invalidate_session msgs
       msg = msgs[0] || msgs[1]
