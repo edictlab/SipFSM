@@ -57,7 +57,7 @@ The FSM facility considers the current application state and generates an event 
 If, for example, the application receives a response message `180 Ringing` while in `:state1`, then the most specific event to generate is a `sipRESPONSE_1xx` event, because there is no transition on `sipRESPONSE_180` event defined in that state. 
 Similarly, when the application is in `:state2`, a `180` SIP response message would result in `sipRESPONSE_180` event generation, the `182 Queued` message would result in generation of the `sipRESPONSE_1xx` event, while any other received SIP response message would result in generation of the `sipRESPONSE_ANY` event. 
 
-Similarly, when the application is in `:state2`, a `180` SIP response message would result in `sipRESPONSE_180` event generation since there is no transition for that eventin `:state2` state. 
+Similarly, when the application is in `:state2`, a `180` SIP response message would result in `sipRESPONSE_180` event generation since there is a transition for that event defined for `:state2` state. 
 From the other hand, a `182 Queued` message would result in `sipRESPONSE_1xx` event, while any other received SIP response message would generate a `sipRESPONSE_ANY` event. 
 
 ## Examples
