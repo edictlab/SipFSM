@@ -53,7 +53,10 @@ The application's FSM, while in some state, can react, for example,  to `sipRESP
             :action => :action5
       end
 
-The FSM facility considers the current application state and generates an event that is the most specific to the message it receives.  If, for example, the FSM receives a response message `180 Ringing` while in `:state1`, then the most specific event to generate is the `sipRESPONSE_1xx` event. Similarly, when the application is in `:state2`, the `180` response message would result in generation of the `sipRESPONSE_180` event, the `182 Queued` message would result in generation of the `sipRESPONSE_1xx` event, while any other received SIP response message would result in generation of the `sipRESPONSE_ANY` event. 
+The FSM facility considers the current application state and generates an event that is the most specific to the message it receives.  
+If, for example, the application receives a response message `180 Ringing` while in `:state1`, then the most specific event to generate is a `sipRESPONSE_1xx` event, because there is no transition on a `sipRESPONSE_180` event defined in that state. 
+Similarly, when the application is in `:state2`, a `180` SIP response message would result in `sipRESPONSE_180` event generation since there is a transition for that event. 
+From the other hand, a `182 Queued` message would result in `sipRESPONSE_1xx` event, while any other received SIP response message would generate a `sipRESPONSE_ANY` event. 
 
 ## Examples
 #### Example 1 - Registrar and proxy
@@ -70,8 +73,9 @@ The second accompanying example implements a click to call SIP servlet. State di
 
 ![C2dSipHandler state diagram](http://edin.ictlab.com.ba/images/c2d_statediagram.png)
 
-This example has a complex call flow that would be extremely complicated if implemented using plain SIP Servlets API. Implementation of the servlet using `SipFSM` clearly describes the call flow and is easier to debug. The example is more detailed explained in the aforementioned papers (the Part II paper).
-
+This example has a complex call flow that would be extremely complicated if implemented using plain SIP Servlets API. 
+Implementation of the servlet using `SipFSM` clearly describes the call flow and is easier to debug. 
+The example is explained with more details in the aforementioned papers (the Part II paper).
 
 
 Definition of the Click to dial Ruby SIP servlet is as follows:
@@ -131,7 +135,7 @@ Methods (events generated) `sendREQ` and `hangUP` are called from the web part o
 C2dSipHandler.create_request(app_session, 'INVITE', sipto, sipfrom)
 ```
 
-The second is called with the same initial `INVITE` request as with `sendREQ` method in order to terminate the call as shown in the diagram.
+`hangUp` method is called with the same initial `INVITE` request as with `sendREQ` method in order to terminate the call as shown in the diagram.
 
 In SIP signaling, many actions can be implemented genericaly. `SipFSM` class implements several such actions that can be used directly in FSM definition without any further code. Such methods are `b2bua_BYE_other`, `send_initial_req`, `invalidate_session`, `b2bua_BYE_both`, `send_response_XXX` family of methods, `is_INVITE_request?`, `is_BYE_request?` and similar, etc.
 
