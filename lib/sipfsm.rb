@@ -11,6 +11,7 @@ module SipFSMModule
 
     include SimpleFSM
     FSM_STATE_ATTR = 'sipFSM_STATE'
+    FSM_APP_SESSION_ATTR = 'sipFSM_AppSession'
 
     # Method service is overriden in order to get servlet context.
     # Then the service method of the Java base class is called.
@@ -22,14 +23,15 @@ module SipFSMModule
 
     # Standard SIP servlet request dispatching
     # is overriden and modified to call the DSL event methods.
+    # However, if fsm not defined or fsm does not respond to the given SIP request, standard dispatching still works.
     def doRequest(request)
       m = request.get_method
       fsmm = "sip#{m}".to_sym
-      run if !fsm_prepare_state([request, nil])
+      st = run(request)
 
-      if fsm_state_responds_to? @state, fsmm 
+      if fsm_state_responds_to? st, fsmm 
         send(fsmm, request, nil)
-      elsif fsm_state_responds_to? @state, :sipREQUEST_ANY
+      elsif fsm_state_responds_to? st, :sipREQUEST_ANY
         send(:sipREQUEST_ANY, request, nil)
       else
         super 
@@ -40,18 +42,18 @@ module SipFSMModule
     # is overriden and modified to call the DSL event methods.
     def doResponse(response)
       m = response.get_status.to_s
-      run if ! fsm_prepare_state([nil, response])
+      st = run(response)
 
       resp_exact = "sipRESPONSE_#{m}".to_sym
       resp_group = "sipRESPONSE_#{m[/./].to_s}xx".to_sym
 
-      if fsm_state_responds_to? @state, resp_exact 
+      if fsm_state_responds_to? st, resp_exact 
         send(resp_exact, nil, response)
 
-      elsif fsm_state_responds_to? @state, resp_group 
+      elsif fsm_state_responds_to? st, resp_group 
         send(resp_group, nil, response)
 
-      elsif fsm_state_responds_to? @state, :sipRESPONSE_ANY
+      elsif fsm_state_responds_to? st, :sipRESPONSE_ANY
         send(:sipRESPONSE_ANY, nil, response)
 
       else
@@ -59,6 +61,7 @@ module SipFSMModule
       end
     end
 
+    # CLASS methods ------------------------------------------------------
     # creates and returns INVITE request
     def self.create_request(app_session, method, from, to)
       sip_factory = $servlet_context.get_attribute('javax.servlet.sip.SipFactory')
@@ -109,30 +112,33 @@ module SipFSMModule
       FSM_STATE_ATTR
     end
 
-    def prepare_state_by_req msg
-      fsm_prepare_state [msg, nil]
-    end
-
     private
     ##### Overriden methods (for FSM) ###########################
 
     # Loading and saving application FSM state from application attribute
-    def fsm_prepare_state msgs
-      m = msgs[0] || msgs[1]
 
-      @sip_session = m.get_session
-      @app_session = m.get_application_session
-      s = @app_session.get_attribute(FSM_STATE_ATTR)
-      @state = s if s
-      s
+    def current_state *sip_msg
+      msgs.flatten!
+      m = sip_msg[0] || sip_msg[1]
+      application_session(m).get_attribute(FSM_STATE_ATTR)
     end
 
-
-    def fsm_save_state request
-      @app_session.set_attribute(FSM_STATE_ATTR, @state)
-      @state
+    def set_current_state st, *sip_msg
+      msgs.flatten!
+      m = sip_msg[0] || sip_msg[1]
+      application_session(m).set_attribute(FSM_STATE_ATTR, st)
     end
 
+    def application_session *sip_msg
+      msgs.flatten!
+      m = sip_msg[0] || sip_msg[1]
+      m.get_application_session
+      # get_session.get_application_session
+    end
+
+    # def application_session= appsess
+    #   application_session.set_attribute(FSM_APP_SESSION_ATTR, appsess)
+    # end
     ####### Helper methods ###############
 
     # Dynamic methods:
@@ -144,7 +150,7 @@ module SipFSMModule
     def method_missing(name, args)
       if name.to_s =~ /send_response_(.*)/
         args[0].create_response($1.to_i).send
-      elsif name.to_s =~ /is_(.*)_request?/
+      elsif name.to_s =~ /is_(.*)?/
         args[0].get_method == $1
       else
         super
@@ -167,12 +173,7 @@ module SipFSMModule
 
     # creates URI java object using SipFactory
     def create_uri(str_uri)
-      if @sip_session
-        sipURI = @sip_session.get_servlet_context.get_attribute('javax.servlet.sip.SipFactory').create_uri('sip:' + str_uri)
-        sipURI
-      else
-        nil
-      end
+        sip_factory.create_uri('sip:' + str_uri)
     end
 
     def get_from_user_address_port(msg)
