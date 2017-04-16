@@ -1,3 +1,5 @@
+[![Gem Version](https://badge.fury.io/rb/sipfsm.svg)](https://badge.fury.io/rb/sipfsm)
+
 # SipFSM
 
 SipFSM - SIP application development in Ruby using SimpleFSM, a simple and lightweight domain specific language (DSL).
