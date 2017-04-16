@@ -11,7 +11,6 @@ module SipFSMModule
 
     include SimpleFSM
     FSM_STATE_ATTR = 'sipFSM_STATE'
-    FSM_APP_SESSION_ATTR = 'sipFSM_AppSession'
 
     # Method service is overriden in order to get servlet context.
     # Then the service method of the Java base class is called.
@@ -118,27 +117,21 @@ module SipFSMModule
     # Loading and saving application FSM state from application attribute
 
     def current_state *sip_msg
-      msgs.flatten!
+      sip_msg.flatten!
       m = sip_msg[0] || sip_msg[1]
       application_session(m).get_attribute(FSM_STATE_ATTR)
     end
 
     def set_current_state st, *sip_msg
-      msgs.flatten!
-      m = sip_msg[0] || sip_msg[1]
-      application_session(m).set_attribute(FSM_STATE_ATTR, st)
+      application_session(sip_msg).set_attribute(FSM_STATE_ATTR, st)
     end
 
     def application_session *sip_msg
-      msgs.flatten!
+      sip_msg.flatten!
       m = sip_msg[0] || sip_msg[1]
       m.get_application_session
-      # get_session.get_application_session
     end
 
-    # def application_session= appsess
-    #   application_session.set_attribute(FSM_APP_SESSION_ATTR, appsess)
-    # end
     ####### Helper methods ###############
 
     # Dynamic methods:
@@ -150,7 +143,7 @@ module SipFSMModule
     def method_missing(name, args)
       if name.to_s =~ /send_response_(.*)/
         args[0].create_response($1.to_i).send
-      elsif name.to_s =~ /is_(.*)?/
+      elsif name.to_s =~ /is_(.*)\?/
         args[0].get_method == $1
       else
         super
@@ -222,7 +215,7 @@ module SipFSMModule
 
     def is_UNREGISTER?(args)
       request = args[0]
-      return false unless is_REGISTER_request?(args)
+      return false unless is_REGISTER?(args)
 
       exp = request.get_header('Expires')
       if !exp
